@@ -4,19 +4,23 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import styles from '../ticket.module.css';
 
-export default function TicketPrint() {
-  const params = useParams();
+export default function TicketPrint({ params }: { params: Promise<{ id: string }> }) {
   const [data, setData] = useState<any>(null);
   const [config, setConfig] = useState<any>(null);
+  const [id, setId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (params?.id) fetchData();
-  }, [params?.id]);
+    params.then((p) => setId(p.id));
+  }, [params]);
+
+  useEffect(() => {
+    if (id) fetchData();
+  }, [id]);
 
   const fetchData = async () => {
     try {
       const [ticketRes, configRes] = await Promise.all([
-        fetch(`/api/sales/${params.id}`),
+        fetch(`/api/sales/${id}`),
         fetch('/api/config/ticket')
       ]);
       
