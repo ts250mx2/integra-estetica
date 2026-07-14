@@ -1,14 +1,34 @@
-import mysql from 'mysql2/promise';
+import { FieldPacket, Pool, PoolConnection, QueryOptions } from 'mysql2/promise';
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'integramembers.com',
-  user: process.env.DB_USER || 'kyk',
-  password: process.env.DB_PASSWORD || 'merkurio',
-  database: process.env.DB_NAME || 'BDIntegraEsteticaBase',
-  port: parseInt(process.env.DB_PORT || '3306'),
-  waitForConnections: true,
-  connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT || '10'),
-  queueLimit: 0,
-});
+type QueryValues = Parameters<Pool['query']>[1];
+type ExecuteValues = Parameters<Pool['execute']>[1];
+import { getRequestPool } from '@/lib/dynamic-db';
 
-export default pool;
+/**
+ * Wrapper de BD consciente del proyecto activo.
+ *
+ * Mantiene la misma interfaz que el pool original (`pool.query(...)`), pero
+ * cada llamada se resuelve contra la BD del proyecto indicado por la cookie
+ * de sesión `ie-project`; sin cookie usa la BD base (BDIntegraEsteticaBase).
+ *
+ * Solo es válido dentro de un contexto de request (route handlers / server
+ * actions), porque internamente lee cookies().
+ */
+const db = {
+  async query(sql: string | QueryOptions, values?: QueryValues): Promise<[unknown, FieldPacket[]]> {
+    const pool = await getRequestPool();
+    return pool.query(sql as string, values);
+  },
+
+  async execute(sql: string | QueryOptions, values?: ExecuteValues): Promise<[unknown, FieldPacket[]]> {
+    const pool = await getRequestPool();
+    return pool.execute(sql as string, values);
+  },
+
+  async getConnection(): Promise<PoolConnection> {
+    const pool = await getRequestPool();
+    return pool.getConnection();
+  },
+};
+
+export default db;

@@ -211,13 +211,13 @@ async function seed() {
       console.log('Seeding default config...');
       await pool.query('INSERT INTO tblConfigTicket SET ?', [{
         Id: 1,
-        Header1: 'INTEGRA ESTÉTICA',
+        Header1: 'HL CUTS',
         Header2: 'Barber Shop & Beauty',
         Header3: 'Tel: 123-456-7890',
         Footer1: 'Gracias por su preferencia',
         Footer2: '¡Vuelva pronto!',
         RequireCustomerName: 1,
-        AppTitle: 'Integra Estética',
+        AppTitle: 'HL Cuts',
         PrimaryColor: '#c9a84c',
         PrimaryHover: '#a8863a',
         AccentColor: '#e2c272'

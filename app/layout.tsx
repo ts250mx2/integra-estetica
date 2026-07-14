@@ -3,8 +3,8 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
-  title: "Integra Estética — Sistema de Gestión",
-  description: "Sistema de punto de venta y agenda para estéticas y barbershops",
+  title: "HL Cuts — Sistema de Gestión",
+  description: "Sistema de punto de venta y agenda para barberías y estéticas",
 };
 
 export default function RootLayout({

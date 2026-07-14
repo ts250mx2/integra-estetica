@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, Plus, Clock, User as UserIcon, X, Check } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Plus, Clock, User as UserIcon, UserPlus, Mail, Phone, X, Check } from 'lucide-react';
 import styles from './agenda.module.css';
 
 interface Cita {
@@ -20,16 +20,28 @@ interface Cliente {
   IdCliente: number;
   NombreCliente: string;
   Telefono: string;
+  CorreoElectronico?: string;
 }
+
+const EMPTY_NEW_CLIENT = { NombreCliente: '', Telefono: '', CorreoElectronico: '' };
+
+// Rango base del calendario de horas del día (se amplía si hay citas fuera).
+const DAY_START_HOUR = 8;
+const DAY_END_HOUR = 21;
 
 export default function AgendaPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [citas, setCitas] = useState<Cita[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<{ open: boolean; cita: Cita | null; date?: Date }>({ open: false, cita: null });
+  const [dayView, setDayView] = useState<Date | null>(null);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
+  const [showNewClient, setShowNewClient] = useState(false);
+  const [newClient, setNewClient] = useState(EMPTY_NEW_CLIENT);
+  const [newClientError, setNewClientError] = useState('');
+  const [savingClient, setSavingClient] = useState(false);
   
   const [formData, setFormData] = useState({
     Titulo: '', Descripcion: '', Fecha: '', Hora: '', Duracion: '60'
@@ -63,7 +75,7 @@ export default function AgendaPage() {
   const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
-  const handleOpenModal = (cita: Cita | null = null, date?: Date) => {
+  const handleOpenModal = (cita: Cita | null = null, date?: Date, hora?: string) => {
     if (cita) {
       const d = new Date(cita.FechaCita);
       setFormData({
@@ -78,11 +90,58 @@ export default function AgendaPage() {
       setFormData({
         Titulo: '', Descripcion: '',
         Fecha: date ? date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        Hora: '10:00', Duracion: '60'
+        Hora: hora || '10:00', Duracion: '60'
       });
       setSelectedCliente(null);
     }
+    setSearchTerm('');
+    setShowNewClient(false);
+    setNewClient(EMPTY_NEW_CLIENT);
+    setNewClientError('');
     setModal({ open: true, cita, date });
+  };
+
+  // Alta rápida de cliente desde el modal de cita: lo crea y lo deja
+  // seleccionado para la cita que se está agendando.
+  const handleCreateClient = async () => {
+    if (!newClient.NombreCliente.trim()) {
+      setNewClientError('El nombre del cliente es obligatorio');
+      return;
+    }
+
+    setNewClientError('');
+    setSavingClient(true);
+    try {
+      const res = await fetch('/api/clientes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          NombreCliente: newClient.NombreCliente.trim(),
+          Telefono: newClient.Telefono.trim(),
+          CorreoElectronico: newClient.CorreoElectronico.trim(),
+        }),
+      });
+      const data = await res.json();
+
+      if (res.ok && data.id) {
+        setSelectedCliente({
+          IdCliente: data.id,
+          NombreCliente: newClient.NombreCliente.trim(),
+          Telefono: newClient.Telefono.trim(),
+          CorreoElectronico: newClient.CorreoElectronico.trim(),
+        });
+        setShowNewClient(false);
+        setNewClient(EMPTY_NEW_CLIENT);
+        setSearchTerm('');
+        fetchClientes();
+      } else {
+        setNewClientError(data.message || 'Error al crear el cliente');
+      }
+    } catch {
+      setNewClientError('Error de conexión al crear el cliente');
+    } finally {
+      setSavingClient(false);
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -113,15 +172,30 @@ export default function AgendaPage() {
   };
 
   const updateStatus = async (id: number, status: number) => {
-    await fetch(`/api/citas/${id}`, {
+    const res = await fetch(`/api/citas/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ Status: status })
     });
+    if (!res.ok) {
+      alert('No se pudo actualizar el estado de la cita');
+      return;
+    }
+    setModal({ open: false, cita: null });
     fetchCitas();
   };
 
-  const filteredClientes = searchTerm ? clientes.filter(c => c.NombreCliente.toLowerCase().includes(searchTerm.toLowerCase())) : [];
+  // Búsqueda por nombre, teléfono o correo electrónico.
+  const filteredClientes = searchTerm
+    ? clientes.filter((c) => {
+        const term = searchTerm.toLowerCase();
+        return (
+          c.NombreCliente.toLowerCase().includes(term) ||
+          (c.Telefono || '').toLowerCase().includes(term) ||
+          (c.CorreoElectronico || '').toLowerCase().includes(term)
+        );
+      })
+    : [];
 
   const renderCalendar = () => {
     const cells = [];
@@ -136,7 +210,7 @@ export default function AgendaPage() {
       const dayCitas = citas.filter(c => new Date(c.FechaCita).toDateString() === date.toDateString());
 
       cells.push(
-        <div key={day} className={`${styles.dayCell} ${isToday ? styles.today : ''}`} onClick={() => handleOpenModal(null, date)}>
+        <div key={day} className={`${styles.dayCell} ${isToday ? styles.today : ''}`} onClick={() => setDayView(date)}>
           <span className={styles.dayNumber}>{day}</span>
           <div className={styles.dayCitas}>
             {dayCitas.map(c => (
@@ -153,6 +227,77 @@ export default function AgendaPage() {
       );
     }
     return cells;
+  };
+
+  // Calendario de horas del día seleccionado: rango base 8:00–21:00,
+  // ampliado si existen citas más tempranas o más tardías.
+  const renderDayView = () => {
+    if (!dayView) return null;
+
+    const dayCitas = citas
+      .filter((c) => new Date(c.FechaCita).toDateString() === dayView.toDateString())
+      .sort((a, b) => new Date(a.FechaCita).getTime() - new Date(b.FechaCita).getTime());
+
+    const citaHours = dayCitas.map((c) => new Date(c.FechaCita).getHours());
+    const startHour = Math.min(DAY_START_HOUR, ...(citaHours.length ? citaHours : [DAY_START_HOUR]));
+    const endHour = Math.max(DAY_END_HOUR - 1, ...(citaHours.length ? citaHours : [DAY_END_HOUR - 1]));
+
+    const hours = [];
+    for (let h = startHour; h <= endHour; h++) hours.push(h);
+
+    const dateTitle = dayView.toLocaleDateString('es', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+    });
+
+    return (
+      <div className={styles.modalOverlay} onClick={() => setDayView(null)}>
+        <div className={`${styles.dayModal} glass animate-scale`} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.modalHeader}>
+            <h3 style={{ textTransform: 'capitalize' }}>{dateTitle}</h3>
+            <div className={styles.dayModalActions}>
+              <button type="button" className={styles.dayNewBtn} onClick={() => handleOpenModal(null, dayView)}>
+                <Plus size={16} /> Nueva Cita
+              </button>
+              <button type="button" onClick={() => setDayView(null)}><X size={20} /></button>
+            </div>
+          </div>
+
+          <div className={styles.dayHours}>
+            {hours.map((h) => {
+              const hourCitas = dayCitas.filter((c) => new Date(c.FechaCita).getHours() === h);
+              const hourLabel = `${String(h).padStart(2, '0')}:00`;
+
+              return (
+                <div key={h} className={styles.hourRow}>
+                  <div className={styles.hourLabel}>{hourLabel}</div>
+                  <div
+                    className={styles.hourSlot}
+                    onClick={() => handleOpenModal(null, dayView, hourLabel)}
+                    title={`Agendar a las ${hourLabel}`}
+                  >
+                    {hourCitas.map((c) => (
+                      <div
+                        key={c.IdCita}
+                        className={`${styles.dayCita} ${c.Status === 2 ? styles.completed : ''}`}
+                        onClick={(e) => { e.stopPropagation(); handleOpenModal(c); }}
+                      >
+                        <span className={styles.dayCitaTime}>
+                          {new Date(c.FechaCita).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {' · '}{c.Duracion} min
+                        </span>
+                        <span className={styles.dayCitaName}>{c.NombreCliente}</span>
+                        {c.Titulo && <span className={styles.dayCitaTitle}>{c.Titulo}</span>}
+                      </div>
+                    ))}
+                    {hourCitas.length === 0 && <span className={styles.hourEmpty}>+ Agendar</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -191,6 +336,8 @@ export default function AgendaPage() {
         </div>
       </div>
 
+      {renderDayView()}
+
       {modal.open && (
         <div className={styles.modalOverlay}>
           <form onSubmit={handleSave} className={`${styles.modal} glass animate-scale`}>
@@ -203,26 +350,101 @@ export default function AgendaPage() {
                 <label><UserIcon size={16} /> Cliente</label>
                 {selectedCliente ? (
                   <div className={styles.selectedCliente}>
-                    <span>{selectedCliente.NombreCliente}</span>
+                    <span>
+                      {selectedCliente.NombreCliente}
+                      {selectedCliente.Telefono && (
+                        <small className={styles.selectedClienteDetail}> · {selectedCliente.Telefono}</small>
+                      )}
+                    </span>
                     <button type="button" onClick={() => setSelectedCliente(null)}><X size={14} /></button>
+                  </div>
+                ) : showNewClient ? (
+                  <div className={styles.newClientForm}>
+                    <div className={styles.newClientTitle}>
+                      <UserPlus size={15} /> Nuevo cliente
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Nombre del cliente"
+                      value={newClient.NombreCliente}
+                      onChange={(e) => setNewClient({ ...newClient, NombreCliente: e.target.value })}
+                      autoFocus
+                    />
+                    <div className={styles.row}>
+                      <div className={styles.newClientField}>
+                        <Phone size={14} />
+                        <input
+                          type="tel"
+                          placeholder="Teléfono"
+                          value={newClient.Telefono}
+                          onChange={(e) => setNewClient({ ...newClient, Telefono: e.target.value })}
+                        />
+                      </div>
+                      <div className={styles.newClientField}>
+                        <Mail size={14} />
+                        <input
+                          type="email"
+                          placeholder="Correo electrónico"
+                          value={newClient.CorreoElectronico}
+                          onChange={(e) => setNewClient({ ...newClient, CorreoElectronico: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    {newClientError && <div className={styles.newClientError}>{newClientError}</div>}
+                    <div className={styles.newClientActions}>
+                      <button
+                        type="button"
+                        className={styles.newClientCancel}
+                        onClick={() => { setShowNewClient(false); setNewClient(EMPTY_NEW_CLIENT); setNewClientError(''); }}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.newClientSave}
+                        onClick={handleCreateClient}
+                        disabled={savingClient}
+                      >
+                        <Check size={15} /> {savingClient ? 'Creando...' : 'Crear cliente'}
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className={styles.searchWrap}>
-                    <input 
-                      type="text" 
-                      placeholder="Buscar cliente..." 
-                      value={searchTerm} 
+                    <input
+                      type="text"
+                      placeholder="Buscar por nombre, teléfono o correo..."
+                      value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
-                    {filteredClientes.length > 0 && (
+                    {searchTerm && (
                       <div className={styles.dropdown}>
                         {filteredClientes.map(c => (
                           <div key={c.IdCliente} className={styles.option} onClick={() => { setSelectedCliente(c); setSearchTerm(''); }}>
                             {c.NombreCliente}
+                            {(c.Telefono || c.CorreoElectronico) && (
+                              <small className={styles.optionDetail}>
+                                {[c.Telefono, c.CorreoElectronico].filter(Boolean).join(' · ')}
+                              </small>
+                            )}
                           </div>
                         ))}
+                        {filteredClientes.length === 0 && (
+                          <div className={styles.optionEmpty}>Sin resultados</div>
+                        )}
                       </div>
                     )}
+                    <button
+                      type="button"
+                      className={styles.newClientBtn}
+                      onClick={() => {
+                        setShowNewClient(true);
+                        setNewClient({ ...EMPTY_NEW_CLIENT, NombreCliente: searchTerm.trim() });
+                        setSearchTerm('');
+                      }}
+                    >
+                      <UserPlus size={15} /> Dar de alta nuevo cliente
+                    </button>
                   </div>
                 )}
               </div>

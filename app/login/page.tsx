@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { User, Lock, ArrowRight, Scissors } from 'lucide-react';
 import styles from './login.module.css';
@@ -28,6 +29,9 @@ export default function LoginPage() {
 
       if (res.ok) {
         localStorage.setItem('ie-user', JSON.stringify(data.user));
+        if (data.project) {
+          localStorage.setItem('ie-project', JSON.stringify(data.project));
+        }
         router.push('/');
       } else {
         setError(data.message || 'Error al iniciar sesión');
@@ -46,17 +50,17 @@ export default function LoginPage() {
           <div className={styles.logoWrap}>
             <Scissors size={40} color="var(--gold)" />
           </div>
-          <h1>Integra Estética</h1>
+          <h1>HL Cuts</h1>
           <p>Sistema de Gestión & POS</p>
         </div>
 
         <form onSubmit={handleLogin} className={styles.form}>
           <div className={styles.inputGroup}>
             <User size={18} className={styles.icon} />
-            <input 
-              type="text" 
-              placeholder="Usuario" 
-              value={login} 
+            <input
+              type="text"
+              placeholder="Usuario o correo electrónico"
+              value={login}
               onChange={(e) => setLogin(e.target.value)} 
               required
               autoFocus
@@ -84,8 +88,12 @@ export default function LoginPage() {
           </button>
         </form>
 
+        <div className={styles.registerLink}>
+          ¿No tienes cuenta? <Link href="/registro">Crea tu proyecto</Link>
+        </div>
+
         <div className={styles.footer}>
-          &copy; {new Date().getFullYear()} Integra Estética
+          &copy; {new Date().getFullYear()} HL Cuts
         </div>
       </div>
     </div>

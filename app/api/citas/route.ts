@@ -18,6 +18,11 @@ export async function GET(request: Request) {
       )
     `);
 
+    // Reparación de datos: un bug anterior del PUT dejaba Status en NULL al
+    // editar, y esas citas desaparecían del calendario. Se restauran como
+    // pendientes (1). Idempotente: sin filas afectadas no hace nada.
+    await pool.query('UPDATE tblCitas SET Status = 1 WHERE Status IS NULL');
+
     const { searchParams } = new URL(request.url);
     const start = searchParams.get('start');
     const end = searchParams.get('end');

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Settings, Save, Layout, List, Palette, Image as ImageIcon, Type } from 'lucide-react';
+import LogoDropZone from '@/components/LogoDropZone';
 import styles from './configuracion.module.css';
 
 export default function ConfiguracionPage() {
@@ -14,6 +15,39 @@ export default function ConfiguracionPage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [logoError, setLogoError] = useState('');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  // Al soltar un logo se sube de inmediato y LogoPath queda apuntando al
+  // archivo subido; falta dar "Guardar Cambios" para persistirlo en la BD.
+  const handleLogoChange = async (dataUrl: string | null) => {
+    setLogoError('');
+
+    if (!dataUrl) {
+      setConfig((prev) => ({ ...prev, LogoPath: '' }));
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const res = await fetch('/api/upload/logo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logoBase64: dataUrl }),
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setConfig((prev) => ({ ...prev, LogoPath: data.path }));
+      } else {
+        setLogoError(data.message || 'Error al subir el logo');
+      }
+    } catch {
+      setLogoError('Error de conexión al subir el logo');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   useEffect(() => {
     fetchConfig();
@@ -78,10 +112,28 @@ export default function ConfiguracionPage() {
               />
             </div>
             <div className={styles.inputGroup}>
+              <label><ImageIcon size={16} /> Logo</label>
+              <LogoDropZone
+                value={config.LogoPath || null}
+                onChange={handleLogoChange}
+                onError={setLogoError}
+              />
+              {uploadingLogo && (
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                  Subiendo logo...
+                </p>
+              )}
+              {logoError && (
+                <p style={{ fontSize: '0.78rem', color: 'var(--danger)', fontWeight: 600, marginTop: '0.35rem' }}>
+                  {logoError}
+                </p>
+              )}
+            </div>
+            <div className={styles.inputGroup}>
               <label><ImageIcon size={16} /> Ruta del Logo (URL)</label>
-              <input 
-                type="text" 
-                value={config.LogoPath} 
+              <input
+                type="text"
+                value={config.LogoPath}
                 onChange={(e) => setConfig({...config, LogoPath: e.target.value})}
                 placeholder="https://ejemplo.com/logo.png"
               />

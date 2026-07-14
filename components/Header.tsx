@@ -36,7 +36,7 @@ export default function Header() {
 
   const isAdmin = user?.IdPuesto === 1;
   const roleName = user?.IdPuesto ? PUESTOS[user.IdPuesto] || 'Usuario' : 'Usuario';
-  const appTitle = config?.AppTitle || 'Integra Estética';
+  const appTitle = config?.AppTitle || 'HL Cuts';
   const logoSrc  = config?.LogoPath || '/logo.png';
 
   return (

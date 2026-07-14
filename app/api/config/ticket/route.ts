@@ -45,7 +45,7 @@ export async function GET() {
     if (!config) {
       config = {
         Id: 1,
-        Header1: 'INTEGRA ESTÉTICA',
+        Header1: 'HL CUTS',
         Header2: 'Barber Shop & Beauty',
         Header3: 'Tel: 123-456-7890',
         Header4: '',
@@ -54,7 +54,7 @@ export async function GET() {
         Footer2: '¡Vuelva pronto!',
         Footer3: '',
         RequireCustomerName: 1,
-        AppTitle: 'Integra Estética',
+        AppTitle: 'HL Cuts',
         PrimaryColor: '#c9a84c',
         PrimaryHover: '#a8863a',
         AccentColor: '#e2c272'
