@@ -1,13 +1,14 @@
 import mysql from 'mysql2/promise';
+import { requireEnv } from '@/lib/env';
 
 // Pool a la BD base/plantilla (BDIntegraEsteticaBase). Se usa como fallback
 // cuando no hay proyecto seleccionado (modo clásico de una sola estética)
 // y como plantilla al crear la BD de un proyecto nuevo.
 const basePool = mysql.createPool({
-  host: process.env.DB_HOST || 'integramembers.com',
-  user: process.env.DB_USER || 'kyk',
-  password: process.env.DB_PASSWORD || 'merkurio',
-  database: process.env.DB_NAME || 'BDIntegraEsteticaBase',
+  host: requireEnv('DB_HOST'),
+  user: requireEnv('DB_USER'),
+  password: requireEnv('DB_PASSWORD'),
+  database: requireEnv('DB_NAME'),
   port: parseInt(process.env.DB_PORT || '3306'),
   waitForConnections: true,
   connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT || '10'),

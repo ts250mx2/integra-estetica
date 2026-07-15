@@ -1,4 +1,5 @@
 import mysql from 'mysql2/promise';
+import { requireEnv } from '@/lib/env';
 
 export const DB_NAME_PREFIX = 'HLC_';
 
@@ -47,14 +48,14 @@ export async function initializeProjectDatabase(
 ): Promise<void> {
   if (!dbName) throw new Error('Nombre de base de datos vacío');
 
-  const templateDb = process.env.DB_NAME || 'BDIntegraEsteticaBase';
+  const templateDb = requireEnv('DB_NAME');
   const seedTables = ['tblUsuarios', 'tblCategorias', 'tblProductos', 'tblConfigTicket'];
 
   // Conexión al servidor sin seleccionar BD (la BD nueva aún no existe).
   const connection = await mysql.createConnection({
-    host: process.env.DB_HOST || 'integramembers.com',
-    user: process.env.DB_USER || 'kyk',
-    password: process.env.DB_PASSWORD || 'merkurio',
+    host: requireEnv('DB_HOST'),
+    user: requireEnv('DB_USER'),
+    password: requireEnv('DB_PASSWORD'),
     port: parseInt(process.env.DB_PORT || '3306'),
   });
 

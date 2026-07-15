@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import projectsPool, { ensureProjectsDatabase } from '@/lib/projects-db';
 import { DB_NAME_PREFIX, initializeProjectDatabase, toDbName } from '@/lib/db-init';
 import { toDominio } from '@/lib/domain';
+import { requireEnv } from '@/lib/env';
 import { parseLogoDataUrl, saveLogo } from '@/lib/logo';
 import { MAX_LOGO_BYTES, LOGO_RULES_MESSAGE, LOGO_SIZE_MESSAGE } from '@/lib/logo-shared';
 
@@ -138,9 +139,9 @@ export async function POST(request: Request) {
 
     const idUsuario = userResult.insertId;
 
-    const dbHost = process.env.DB_HOST || 'integramembers.com';
-    const dbUser = process.env.DB_USER || 'kyk';
-    const dbPass = process.env.DB_PASSWORD || 'merkurio';
+    const dbHost = requireEnv('DB_HOST');
+    const dbUser = requireEnv('DB_USER');
+    const dbPass = requireEnv('DB_PASSWORD');
     const projectUuid = crypto.randomUUID();
 
     const [projectResult] = await connection.query(

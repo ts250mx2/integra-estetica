@@ -1,14 +1,15 @@
 import mysql from 'mysql2/promise';
+import { requireEnv } from '@/lib/env';
 
-const PROJECTS_DB_NAME = process.env.DB_NAME_PROJECTS || 'BDEsteticaProjects';
+const PROJECTS_DB_NAME = requireEnv('DB_NAME_PROJECTS');
 
 // Pool a la BD maestra de proyectos (BDEsteticaProjects), donde se registran
 // los proyectos (tblProyectos), sus dueños (tblUsuarios) y la relación
 // entre ambos (tblProyectosUsuarios).
 const projectsPool = mysql.createPool({
-  host: process.env.DB_HOST_PROJECTS || 'integramembers.com',
-  user: process.env.DB_USER_PROJECTS || 'kyk',
-  password: process.env.DB_PASSWORD_PROJECTS || 'merkurio',
+  host: requireEnv('DB_HOST_PROJECTS'),
+  user: requireEnv('DB_USER_PROJECTS'),
+  password: requireEnv('DB_PASSWORD_PROJECTS'),
   database: PROJECTS_DB_NAME,
   port: parseInt(process.env.DB_PORT_PROJECTS || '3306'),
   waitForConnections: true,
@@ -23,9 +24,9 @@ async function bootstrap(): Promise<void> {
   // La BD maestra puede no existir aún en el servidor: crearla sin
   // seleccionar base y luego asegurar sus tablas.
   const connection = await mysql.createConnection({
-    host: process.env.DB_HOST_PROJECTS || 'integramembers.com',
-    user: process.env.DB_USER_PROJECTS || 'kyk',
-    password: process.env.DB_PASSWORD_PROJECTS || 'merkurio',
+    host: requireEnv('DB_HOST_PROJECTS'),
+    user: requireEnv('DB_USER_PROJECTS'),
+    password: requireEnv('DB_PASSWORD_PROJECTS'),
     port: parseInt(process.env.DB_PORT_PROJECTS || '3306'),
   });
 
