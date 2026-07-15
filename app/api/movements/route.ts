@@ -13,7 +13,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json([]);
   } catch (error) {
-    return NextResponse.json({ message: 'Error' }, { status: 500 });
+    console.error('Movements GET error:', error);
+    return NextResponse.json({ message: 'Error al consultar movimientos' }, { status: 500 });
   }
 }
 
@@ -29,6 +30,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, id: (result as any).insertId });
   } catch (error) {
-    return NextResponse.json({ message: 'Error' }, { status: 500 });
+    console.error('Movements POST error:', error);
+    return NextResponse.json({ message: 'Error al registrar el movimiento' }, { status: 500 });
   }
 }

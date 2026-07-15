@@ -12,6 +12,9 @@ const basePool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT || '10'),
   queueLimit: 0,
+  // DECIMAL como número JS: sin esto llegan como string y las sumas en el
+  // frontend concatenan texto (ej. "350.00" + "330.00" → NaN).
+  decimalNumbers: true,
 });
 
 export default basePool;

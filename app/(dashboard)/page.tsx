@@ -91,7 +91,7 @@ export default function POSPage() {
   }, []);
 
   useEffect(() => {
-    let result = products;
+    let result = Array.isArray(products) ? products : [];
     if (selectedCategory) result = result.filter(p => p.IdCategoria === selectedCategory);
     if (searchTerm)       result = result.filter(p => p.Producto.toLowerCase().includes(searchTerm.toLowerCase()));
     result = [...result].sort((a, b) => (a.EsExtra ?? 0) - (b.EsExtra ?? 0));
@@ -104,14 +104,34 @@ export default function POSPage() {
         fetch('/api/products'),
         fetch('/api/config/ticket')
       ]);
-      const data = await res.json();
-      const configData = await configRes.json();
-      setProducts(data.products);
-      setAllExtras(data.products.filter((p: Product) => p.EsExtra === 1));
-      setCategories(data.categories);
+      
+      let fetchedProducts: Product[] = [];
+      let fetchedCategories: Category[] = [];
+      let configData: any = null;
+
+      if (res.ok) {
+        const data = await res.json();
+        fetchedProducts = Array.isArray(data.products) ? data.products : [];
+        fetchedCategories = Array.isArray(data.categories) ? data.categories : [];
+      } else {
+        console.error('Failed to fetch products API status:', res.status);
+      }
+
+      if (configRes.ok) {
+        configData = await configRes.json();
+      } else {
+        console.error('Failed to fetch ticket config API status:', configRes.status);
+      }
+
+      setProducts(fetchedProducts);
+      setAllExtras(fetchedProducts.filter((p: Product) => p.EsExtra === 1));
+      setCategories(fetchedCategories);
       setTicketConfig(configData);
       setLoading(false);
-    } catch (err) { console.error('POS fetchData error:', err); }
+    } catch (err) { 
+      console.error('POS fetchData error:', err); 
+      setLoading(false);
+    }
   };
 
   const fetchClientes = async () => {

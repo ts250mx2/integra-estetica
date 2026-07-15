@@ -30,6 +30,7 @@ export async function GET() {
       } 
     });
   } catch (error) {
-    return NextResponse.json({ message: 'Error' }, { status: 500 });
+    console.error('Cash status error:', error);
+    return NextResponse.json({ message: 'Error al consultar el estado de la caja' }, { status: 500 });
   }
 }

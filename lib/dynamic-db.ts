@@ -58,6 +58,8 @@ export async function getProjectPool(projectId: number): Promise<Pool> {
     waitForConnections: true,
     connectionLimit: PROJECT_POOL_CONNECTION_LIMIT,
     queueLimit: 0,
+    // DECIMAL como número JS (igual que base-db): evita NaN en el frontend.
+    decimalNumbers: true,
   });
 
   projectPools.set(projectId, pool);

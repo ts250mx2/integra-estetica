@@ -7,7 +7,8 @@ export async function GET() {
     const [categories] = await pool.query('SELECT * FROM tblCategorias');
     return NextResponse.json({ products, categories });
   } catch (error) {
-    return NextResponse.json({ message: 'Error' }, { status: 500 });
+    console.error('Error in GET /api/products:', error);
+    return NextResponse.json({ message: 'Error', error: String(error) }, { status: 500 });
   }
 }
 

@@ -19,20 +19,32 @@ export default function CashPage() {
   }, []);
 
   const fetchStatus = async () => {
-    const res = await fetch('/api/cash/status');
-    const data = await res.json();
-    setStatus(data);
-    setLoading(false);
-    
-    if (data.isOpen) {
-      fetchMovements(data.session.IdApertura);
+    try {
+      const res = await fetch('/api/cash/status');
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || 'Error al consultar el estado de la caja');
+        setStatus({ isOpen: false });
+        return;
+      }
+
+      setStatus(data);
+      if (data.isOpen) {
+        fetchMovements(data.session.IdApertura);
+      }
+    } catch {
+      alert('Error de conexión al consultar la caja');
+      setStatus({ isOpen: false });
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchMovements = async (idApertura: number) => {
     const res = await fetch(`/api/movements?idApertura=${idApertura}`);
     const data = await res.json();
-    setMovements(data);
+    setMovements(Array.isArray(data) ? data : []);
   };
 
   const fetchHistory = async () => {
@@ -51,8 +63,9 @@ export default function CashPage() {
       body: JSON.stringify({ action: 'open', amount: parseFloat(amount) })
     });
     if (res.ok) {
-      const data = await res.json();
       fetchStatus();
+    } else {
+      alert('No se pudo abrir la caja, intenta de nuevo');
     }
   };
 
@@ -75,6 +88,8 @@ export default function CashPage() {
       setMovementModal(null);
       setMovData({ amount: '', concept: '' });
       fetchMovements(status.session.IdApertura);
+    } else {
+      alert('No se pudo registrar el movimiento, intenta de nuevo');
     }
   };
 
@@ -102,6 +117,8 @@ export default function CashPage() {
       alert('Corte generado con éxito');
       fetchStatus();
       fetchHistory();
+    } else {
+      alert('No se pudo cerrar la caja, intenta de nuevo');
     }
   };
 
@@ -143,7 +160,7 @@ export default function CashPage() {
           <div className={styles.stats}>
             <div className={`${styles.statCard} glass`}>
               <span className={styles.statLabel}>Fondo Inicial</span>
-              <span className={styles.statValue}>${Number(status.session.FondoCaja).toFixed(2)}</span>
+              <span className={styles.statValue}>${Number(status.session.FondoCaja || 0).toFixed(2)}</span>
             </div>
             <div className={`${styles.statCard} glass`}>
               <span className={styles.statLabel}>Ventas Hoy</span>
@@ -151,7 +168,11 @@ export default function CashPage() {
             </div>
             <div className={`${styles.statCard} glass`}>
               <span className={styles.statLabel}>Efectivo en Caja</span>
-              <span className={styles.statValue}>${Number(status.session.FondoCaja + (status.session.Efectivo || 0) + movements.reduce((acc, m) => acc + Number(m.Efectivo), 0)).toFixed(2)}</span>
+              <span className={styles.statValue}>${(
+                Number(status.session.FondoCaja || 0) +
+                Number(status.session.Efectivo || 0) +
+                movements.reduce((acc, m) => acc + Number(m.Efectivo || 0), 0)
+              ).toFixed(2)}</span>
             </div>
           </div>
 

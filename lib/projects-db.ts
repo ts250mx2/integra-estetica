@@ -14,6 +14,7 @@ const projectsPool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT_PROJECTS || '10'),
   queueLimit: 0,
+  decimalNumbers: true,
 });
 
 let bootstrapPromise: Promise<void> | null = null;
